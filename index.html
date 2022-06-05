@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>GTFS DeckGL visualization (experiments)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="Charles-Henri ARNOULD - BECKREL" />
+    <meta name=" robots" content="index,nofollow" />
+    <!-- Privacy-first analytics (GDPR compliant) -->
+    <script defer data-domain="charnould.github.io" src="https://plausible.io/js/plausible.js"></script>    <script src="https://unpkg.com/deck.gl@^8.7.0/dist.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.js"></script>
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.css"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body style="margin: 0; padding: 0">
+    <div id="map" style="width: 100vw; height: 100vh"></div>
+  </body>
+
+  <script type="text/javascript">
+    const resource =
+      "https://raw.githubusercontent.com/charnould/reclus/master/gtfs.json";
+    const init = {
+      headers: {
+        Accept: "application/json",
+      },
+    };
+
+    let layerData;
+    const result = fetch(resource, init).then(function (res) {
+      layerData = res.json();
+      return;
+    });
+
+    const LOOP_LENGTH = 1800;
+    const ANIMATION_SPEED = 0.1;
+
+    async function initialize() {
+      const deckgl = new deck.DeckGL({
+        container: "map",
+        mapStyle: "mapbox://styles/charnould/cl2hziv0w000414pdnsbd81hy",
+        mapboxApiAccessToken:
+          "pk.eyJ1IjoiY2hhcm5vdWxkIiwiYSI6ImNsNDFsaXpwZTBhYW0zaW1nY3prZzhseGQifQ.b5fL3mYCUdTUXkHHjqZSmA",
+        initialViewState: {
+          longitude: 2.3522219,
+          latitude: 48.856614,
+          zoom: 11,
+          pitch: 45,
+          bearing: 0,
+        },
+        controller: true,
+      });
+
+      let time = 0;
+
+      function animate() {
+        time = (time + ANIMATION_SPEED) % LOOP_LENGTH;
+        window.requestAnimationFrame(animate);
+      }
+
+      setInterval(() => {
+        deckgl.setProps({
+          layers: [
+            new deck.TripsLayer({
+              id: "trips-layer",
+              data: layerData,
+              getPath: (d) => d.path,
+              getTimestamps: (d) => d.timestamps,
+              getColor: (d) => (d.vendor === 0 ? [253, 128, 93] : [0, 0, 255]),
+              opacity: 0.05,
+              widthMinPixels: 2,
+              trailLength: 5,
+              jointRounded: true,
+              capRounded: true,
+              currentTime: time,
+              shadowEnabled: false,
+            }),
+          ],
+        });
+      }, 50);
+
+      window.requestAnimationFrame(animate);
+    }
+
+    initialize();
+  </script>
+</html>
